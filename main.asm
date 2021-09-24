@@ -3,77 +3,47 @@
 ;
 ;
 ;-------------------------------------------------------------------------------
-            .cdecls C,LIST,"msp430.h"       ; Include device header file
-            .global MERGESORT,INPUT_ARR,OUTPUT_ARR,ARR_SIZE,EL_SIZE,LED0_ON,LED1_ON
+            .cdecls C,LIST,"msp430.h"           ; Include device header file
+            .global MERGESORT,INPUT_ARR,OUTPUT_ARR,ARR_SIZE,EL_SIZE
+            .global LED0_ON,LED1_ON,VERIFY_SORT,POWER_DOWN
 
 ;-------------------------------------------------------------------------------
-            .def    RESET                   ; Export program entry-point to
-                                            ; make it known to linker.
+            .def    RESET                       ; Export program entry-point to
+                                                ; make it known to linker.
 ;-------------------------------------------------------------------------------
-            .text                           ; Assemble into program memory.
-            .retain                         ; Override ELF conditional linking
-                                            ; and retain current section.
-            .retainrefs                     ; And retain any sections that have
-                                            ; references to current section.
+            .text                               ; Assemble into program memory.
+            .retain                             ; Override ELF conditional linking
+                                                ; and retain current section.
+            .retainrefs                         ; And retain any sections that have
+                                                ; references to current section.
 
 ;-------------------------------------------------------------------------------
-RESET       mov.w   #__STACK_END,SP         ; Initialize stackpointer
-StopWDT     mov.w   #WDTPW|WDTHOLD,&WDTCTL  ; Stop watchdog timer
-
+RESET       mov.w   #__STACK_END,SP             ; Initialize stackpointer
+StopWDT     mov.w   #WDTPW|WDTHOLD,&WDTCTL      ; Stop watchdog timer
 
 ;-------------------------------------------------------------------------------
 ; Main loop here
 ;-------------------------------------------------------------------------------
-			and.w 	#~LOCKLPM5,&PM5CTL0						; Turn off high-impedance mode
-			mov.w	#0,&P1OUT
-			mov.w	#BIT1|BIT0,&P1DIR						; Setup LED output
+            and.w   #~LOCKLPM5,     &PM5CTL0    ; Turn off high-impedance mode
+            mov.w   #0,             &P1OUT      ; Turn off all LEDs
+            mov.w   #BIT1|BIT0,     &P1DIR      ; Setup LED output
 
-			movx.a	#INPUT_ARR,		r5
-			movx.a	#OUTPUT_ARR,	r6
-			movx.a	&ARR_SIZE,		r7
-			movx.b	&EL_SIZE,		r8
-			call	#MERGESORT
+            movx.b  &EL_SIZE,       R4
+            movx.a  #INPUT_ARR,     R5
+            movx.a  #OUTPUT_ARR,    R6
+            movx.a  &ARR_SIZE,      R7
+            call    #MERGESORT                  ; mergesort(el_size, in_arr, out_arr, arr_size)
 
-			movx.a	#OUTPUT_ARR,	r5
-			movx.w	&ARR_SIZE,		r6
-			call	#VERIFY_SORT
+            movx.a  #OUTPUT_ARR,R5
+            movx.w  &ARR_SIZE,R6
+            movx.b  &EL_SIZE,R7
+            call    #VERIFY_SORT                ; verify_sort(arr, arr_size, el_size)
 
-			jz		SUCCESS
-			call	#LED0_ON
-			jmp 	AEND
-SUCCESS		call	#LED1_ON
-AEND		nop
-			jmp		AEND
-
-
-VERIFY_SORT	;; VERIFY_SORT: check that a list is sorted
-			;;
-			;; Arguments: r5 - the list, r6 - list length
-			;; Uses: SR(Z) to return a value
-			;;
-			;; Internal:
-			.asmfunc
-			pushm.a		#5,		r9
-			movx.a		r5, 	r7
-			incx.a		r7
-
-VS_CHK		decx.a		r6
-			tstx.a		r6
-			jz			VS_SUCCESS
-
-			movx.b		@r5+,	r8
-			movx.b		@r7+,	r9
-
-			cmp.b		r8,		r9
-			jlo			VS_FAILURE
-			jmp			VS_CHK
-
-VS_SUCCESS	setz
-			jmp 		VS_DONE
-VS_FAILURE	clrz
-VS_DONE		popm.a		#5,		r9
-			ret
-			.endasmfunc
+            jz      SUCCESS
+            call    #LED0_ON                    ; Turn on the red LED -- failed
+            jmp     AEND
+SUCCESS     call    #LED1_ON                    ; Turn on the green LED -- success
+AEND        call    #POWER_DOWN
 
 ;-------------------------------------------------------------------------------
 ; Stack Pointer definition
@@ -86,4 +56,3 @@ VS_DONE		popm.a		#5,		r9
 ;-------------------------------------------------------------------------------
             .sect   ".reset"                ; MSP430 RESET Vector
             .short  RESET
-            
