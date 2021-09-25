@@ -5,7 +5,7 @@
 ;-------------------------------------------------------------------------------
             .cdecls C,LIST,"msp430.h"           ; Include device header file
             .global MERGESORT,INPUT_ARR,OUTPUT_ARR,ARR_SIZE,EL_SIZE
-            .global LED0_ON,LED1_ON,VERIFY_SORT,POWER_DOWN
+            .global LED0_ON,LED1_ON,VERIFY_SORT,POWER_DOWN,SETUP
 
 ;-------------------------------------------------------------------------------
             .def    RESET                       ; Export program entry-point to
@@ -20,14 +20,10 @@
 ;-------------------------------------------------------------------------------
 RESET       mov.w   #__STACK_END,   SP          ; Initialize stackpointer
 StopWDT     mov.w   #WDTPW|WDTHOLD, &WDTCTL     ; Stop watchdog timer
-
+            call    #SETUP
 ;-------------------------------------------------------------------------------
 ; Main loop here
 ;-------------------------------------------------------------------------------
-            and.w   #~LOCKLPM5,     &PM5CTL0    ; Turn off high-impedance mode
-            mov.w   #0,             &P1OUT      ; Turn off all LEDs
-            mov.w   #BIT1|BIT0,     &P1DIR      ; Setup LED output
-
             movx.b  &EL_SIZE,       R4
             movx.a  #INPUT_ARR,     R5
             movx.a  #OUTPUT_ARR,    R6

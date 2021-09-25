@@ -1,7 +1,24 @@
             .cdecls C,LIST,"msp430.h"       ; Include device header file
             .global AVERAGE,COPY,LED0_ON,LED0_OFF,VERIFY_SORT,POWER_DOWN
+            .global SETUP
 
             .text
+
+SETUP		;; SETUP: perform setup tasks
+			.asmfunc
+            and.w   #~LOCKLPM5,     	&PM5CTL0    ; Turn off high-impedance mode
+            mov.w   #0,             	&P1OUT      ; Turn off all LEDs
+            mov.w   #BIT1|BIT0,     	&P1DIR      ; Setup LED output
+
+            mov.w   #NWAITS_1|FRCTLPW,	&FRCTL0     ; Enable FRAM wait states, faster clock
+            mov.w   #CSKEY,             &CSCTL0     ; Unlock clock registers
+			mov.w   #DCOFSEL_4|DCORSEL,	&CSCTL1     ; 16MHz mode DCOCLK
+            bis.w   #SELM__DCOCLK,      &CSCTL2     ; MCLK = DCOCLK
+            bic.w   #DIVM,              &CSCTL3     ; MCLK divider = 1
+
+			ret
+			.endasmfunc
+
 
 AVERAGE     ;; AVERAGE: finds the average of a and b
             ;; uses the floor if true answer is non-integer
